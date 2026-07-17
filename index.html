@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Top 100 Trading Chart Patterns — Candlestick Explorer</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#121722; --panel2:#171d2b; --line:#232c3d;
+    --txt:#dfe6f3; --dim:#8b98ad; --accent:#4c9aff;
+    --up:#26a65b; --upw:#3ddc84; --dn:#e0384e; --dnw:#ff5c72;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font-family:"Segoe UI",system-ui,-apple-system,sans-serif;font-size:14px}
+  header{position:sticky;top:0;z-index:20;background:rgba(11,14,20,.96);
+         border-bottom:1px solid var(--line);padding:14px 18px;backdrop-filter:blur(8px)}
+  h1{margin:0 0 2px;font-size:18px;letter-spacing:.2px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:12px}
+  .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .grp{display:flex;align-items:center;gap:6px}
+  .grp>label{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-right:2px}
+  .tf{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .tf button{background:var(--panel);color:var(--dim);border:0;border-right:1px solid var(--line);
+             padding:6px 11px;cursor:pointer;font-size:12px;font-weight:600}
+  .tf button:last-child{border-right:0}
+  .tf button:hover{color:var(--txt);background:var(--panel2)}
+  .tf button.on{background:var(--accent);color:#fff}
+  select,input[type=search]{background:var(--panel);color:var(--txt);border:1px solid var(--line);
+             border-radius:7px;padding:6px 9px;font-size:12px;outline:none}
+  input[type=search]{min-width:190px}
+  select:focus,input:focus{border-color:var(--accent)}
+  .count{color:var(--dim);font-size:12px;margin-left:auto}
+  .filters{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .ftog{display:none;background:var(--panel);color:var(--txt);border:1px solid var(--line);
+        border-radius:7px;padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .ftog.open{border-color:var(--accent);color:var(--accent)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:12px;padding:16px 18px 60px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px;cursor:pointer;
+        transition:border-color .12s,transform .12s}
+  .card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .card canvas{width:100%;height:132px;display:block;border-radius:5px;background:var(--panel2)}
+  .cname{font-weight:600;font-size:12.5px;margin:8px 0 4px;line-height:1.3}
+  .meta{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+  .tag{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-radius:4px;
+       background:var(--panel2);color:var(--dim);border:1px solid var(--line)}
+  .b-bull{color:var(--upw);border-color:#215c3c}
+  .b-bear{color:var(--dnw);border-color:#63242f}
+  .b-neut{color:#e0b33d;border-color:#5c4a1c}
+  .f3{color:var(--accent);border-color:#264a7a}
+
+  .modal{position:fixed;inset:0;background:rgba(4,6,10,.86);display:none;z-index:50;
+         padding:24px;overflow:auto;backdrop-filter:blur(3px)}
+  .modal.on{display:block}
+  .sheet{max-width:1060px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .shead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+  .shead h2{margin:0 0 6px;font-size:19px}
+  .x{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:7px;
+     width:30px;height:30px;cursor:pointer;font-size:16px;flex:none}
+  .x:hover{color:var(--txt);border-color:var(--accent)}
+  #big{width:100%;height:420px;display:block;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}
+  .desc{margin-top:14px;color:#b9c4d6;line-height:1.65;font-size:13.5px}
+  .desc b{color:var(--txt)}
+  .note{margin-top:12px;padding:10px 12px;border-left:2px solid var(--accent);
+        background:var(--panel2);border-radius:0 6px 6px 0;color:var(--dim);font-size:12px;line-height:1.6}
+  .nav{display:flex;gap:8px;margin-top:14px}
+  .nav button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+              padding:9px;border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:600}
+  .nav button:hover{border-color:var(--accent)}
+  footer{padding:0 18px 40px;color:var(--dim);font-size:11.5px;line-height:1.7;max-width:900px}
+
+  /* ── phones ── */
+  @media (max-width:600px){
+    body{font-size:15px}
+    header{padding:10px 12px}
+    h1{font-size:15px}
+    .sub{font-size:11px;margin-bottom:9px}
+    .controls{gap:8px}
+    .grp{flex:1 1 auto}
+    .grp>label{display:none}
+    .tf{width:100%}
+    .tf button{flex:1;min-width:0;padding:10px 0;font-size:12.5px}  /* full-width touch targets */
+    /* filters collapse behind a toggle — otherwise the sticky header eats a third of the screen */
+    .ftog{display:block;width:100%}
+    .filters{display:none;width:100%;gap:8px}
+    .filters.open{display:flex}
+    .grp{flex:1 1 46%}
+    select{width:100%;padding:10px;font-size:13px}
+    input[type=search]{width:100%;min-width:0;padding:10px;font-size:16px} /* 16px stops iOS zoom-on-focus */
+    .count{width:100%;margin-left:0;text-align:right;font-size:11px}
+    /* one chart per row — two columns of ~165px cannot render 70 candles legibly */
+    .grid{grid-template-columns:1fr;gap:10px;padding:10px 10px 40px}
+    .card canvas{height:190px}
+    .card:hover{transform:none}
+    .modal{padding:0}
+    .sheet{border-radius:0;border:0;min-height:100vh;padding:12px}
+    #big{height:56vh;min-height:280px}
+    .shead h2{font-size:16px}
+    .x{width:38px;height:38px}
+    .nav button{padding:13px}
+    footer{padding:0 12px 30px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Top 100 Trading Chart Patterns</h1>
+  <div class="sub">Candlestick rendering · illustrative shapes, not live market data · click any chart to expand</div>
+  <div class="controls">
+    <div class="grp">
+      <label>Timeframe</label>
+      <div class="tf" id="tfbar"></div>
+    </div>
+    <button class="ftog" id="ftog">Filters ▾</button>
+    <div class="filters" id="filters">
+      <div class="grp">
+        <label>Group</label>
+        <select id="cat"></select>
+      </div>
+      <div class="grp">
+        <label>Bias</label>
+        <select id="bias">
+          <option value="">All</option>
+          <option value="Bullish">Bullish</option>
+          <option value="Bearish">Bearish</option>
+          <option value="Neutral">Neutral</option>
+        </select>
+      </div>
+      <div class="grp">
+        <label>Sort</label>
+        <select id="sort">
+          <option value="freq">How often it shows up</option>
+          <option value="name">Name (A–Z)</option>
+          <option value="cat">Group</option>
+        </select>
+      </div>
+      <input type="search" id="q" placeholder="Search pattern name…">
+    </div>
+    <span class="count" id="count"></span>
+  </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<footer>
+  These are textbook renderings generated from each pattern's defining geometry, so you can learn to recognise the
+  shape. They are not recordings of real price action, and no pattern here carries a proven edge on its own — treat
+  the frequency labels as "how often the shape appears", never as a win rate.
+</footer>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="shead">
+      <div>
+        <h2 id="mname"></h2>
+        <div class="meta" id="mmeta"></div>
+      </div>
+      <button class="x" id="mx">×</button>
+    </div>
+    <canvas id="big"></canvas>
+    <div class="desc" id="mdesc"></div>
+    <div class="note" id="mnote"></div>
+    <div class="nav">
+      <button id="prev">← Previous</button>
+      <button id="next">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────── timeframes ─────────── */
+const TFS = [
+  {id:'5m',  label:'5m',  range:0.6,  step:5,      unit:'min'},
+  {id:'15m', label:'15m', range:1.1,  step:15,     unit:'min'},
+  {id:'1h',  label:'1h',  range:2.4,  step:60,     unit:'min'},
+  {id:'3h',  label:'3h',  range:4.0,  step:180,    unit:'min'},
+  {id:'5h',  label:'5h',  range:5.5,  step:300,    unit:'min'},
+  {id:'1D',  label:'1D',  range:10,   step:1,      unit:'day'},
+  {id:'1W',  label:'1W',  range:20,   step:7,      unit:'day'},
+  {id:'1M',  label:'1M',  range:34,   step:30,     unit:'day'}
+];
+let tfi = 5;                 // default 1D
+const BASE = 24000;          // NIFTY-like reference price
+
+/* ─────────── deterministic RNG ─────────── */
+function rngFrom(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const hash = s => { let h = 2166136261; for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619);} return h>>>0; };
+
+/* ─────────── pattern catalogue ─────────── */
+/* PATH patterns: `p` = evenly spaced price pivots on a 0–100 scale, interpolated into ~58 candles.
+   CANDLE patterns: `c` = explicit [open, close, high, low] per candle, with a generated trend before/after. */
+const P = (name,cat,bias,freq,p,desc,note) => ({name,cat,bias,freq,p,desc,note,kind:'path'});
+const C = (name,cat,bias,freq,pre,c,desc,note) => ({name,cat,bias,freq,pre,c,desc,note,kind:'cs'});
+
+const PATTERNS = [
+/* ══ Reversal formations ══ */
+P('Head and Shoulders Top','Reversal formation','Bearish',3,[18,30,52,34,44,76,42,34,55,38,26,12],
+  'Three peaks: a <b>left shoulder</b>, a higher <b>head</b>, then a right shoulder that fails to match the head. The two troughs define the <b>neckline</b>; the pattern only completes when price closes below it.',
+  'The break of the neckline is the signal, not the third peak. A right shoulder that pushes above the head invalidates the whole thing.'),
+P('Head and Shoulders Bottom (Inverse)','Reversal formation','Bullish',3,[82,70,48,66,56,24,58,66,45,62,74,88],
+  'The mirror image: a trough, a deeper trough (the head), then a shallower one. Completes on a close above the neckline drawn across the two intervening peaks.',
+  'Bottoms take longer to form than tops. Expect this to grind sideways far longer than the textbook picture suggests.'),
+P('Double Top','Reversal formation','Bearish',3,[15,40,68,50,42,52,68,48,32,16],
+  'Two peaks at roughly the same price with a valley between. Sellers defend the same level twice. The valley low is the trigger line.',
+  'Extremely common — and extremely often just a range, not a reversal. Without the valley-low break you have nothing.'),
+P('Double Bottom','Reversal formation','Bullish',3,[85,60,32,50,58,48,32,52,68,84],
+  'Two lows near the same price separated by a bounce. Buyers absorb supply at the same level twice; completion is a close above the intervening peak.',
+  'The classic "W". The second low holding slightly <i>above</i> the first is generally read as stronger.'),
+P('Triple Top','Reversal formation','Bearish',2,[15,40,66,50,66,50,66,48,30,14],
+  'Three failed attempts at the same resistance. Each rejection thins out the buyers still willing to pay up.',
+  'Rarer than the double top for a simple reason: most would-be triple tops break out on the third try.'),
+P('Triple Bottom','Reversal formation','Bullish',2,[85,60,34,50,34,50,34,52,70,86],
+  'Three tests of the same support that all hold, then a break above the highs between them.',
+  'Long-winded to form. The flat support line is what matters — the bounces between need not be symmetrical.'),
+P('Rounding Top','Reversal formation','Bearish',2,[20,35,50,62,70,72,70,62,50,35,20],
+  'A slow, curved rollover with no single sharp high. Buying pressure fades gradually instead of breaking.',
+  'No clean trigger line, which makes it awkward to trade. It is a description of character, not an entry.'),
+P('Rounding Bottom (Saucer)','Reversal formation','Bullish',2,[80,65,50,38,30,28,30,38,50,65,80],
+  'A gentle U-shaped base as selling exhausts and demand slowly returns. Often spans months on a daily chart.',
+  'Frequently the first half of a Cup with Handle. Patience-heavy — nothing about it is fast.'),
+P('V Top','Reversal formation','Bearish',3,[15,30,45,60,78,55,40,25,12],
+  'A sharp rally reverses hard with no distribution phase at all. Common after news-driven or squeeze-driven moves.',
+  'Gives you no warning and no retest. Recognisable only after the damage is done.'),
+P('V Bottom','Reversal formation','Bullish',3,[85,70,55,40,22,45,60,75,88],
+  'A capitulation low that snaps straight back up. Panic selling meets a wall of demand in a single session or two.',
+  'The move everybody wishes they caught and almost nobody does. Chasing it is how accounts die.'),
+P('Diamond Top','Reversal formation','Bearish',1,[40,50,38,58,32,66,28,62,36,54,42,48,44,30,16],
+  'A broadening phase (widening swings) followed by a narrowing phase (contracting swings), tracing a diamond outline.',
+  'Genuinely rare and heavily over-diagnosed. If you have to squint to see it, it is not there.'),
+P('Diamond Bottom','Reversal formation','Bullish',1,[60,50,62,42,68,34,72,38,64,46,58,52,56,70,84],
+  'The same expand-then-contract structure at the end of a decline, resolving upward.',
+  'Rarer still than the diamond top. Treat any claimed sighting with suspicion.'),
+P('Broadening Top','Reversal formation','Bearish',2,[45,55,40,62,34,70,28,76,22,18],
+  'Higher highs and lower lows — a megaphone. Volatility expands while direction stays unresolved; disagreement is widening.',
+  'Brutal to trade: every swing stops out the previous one. Usually a reason to stand aside, not to engage.'),
+P('Broadening Bottom','Reversal formation','Bullish',2,[55,45,60,38,66,30,72,24,78,82],
+  'The megaphone forming into a low, resolving upward as the expanding swings finally find a bid.',
+  'Same warning as the broadening top. Expanding ranges chop up position sizing.'),
+P('Adam & Adam Double Top','Reversal formation','Bearish',2,[18,38,72,40,36,42,72,42,26,14],
+  'A double top where both peaks are narrow one- or two-bar spikes — "Adam" peaks. Sharp in, sharp out, twice.',
+  'Bulkowski\'s naming. The narrow-and-narrow variant is the sharper-looking of the four combinations.'),
+P('Adam & Eve Double Top','Reversal formation','Bearish',2,[18,38,74,42,38,48,64,66,62,44,26,14],
+  'A narrow spike peak followed by a wide, rounded second peak at the same level. Fast rejection, then slow distribution.',
+  'The rounded second peak often gives more warning than the spike did — that is the useful part.'),
+P('Eve & Adam Double Bottom','Reversal formation','Bullish',2,[84,60,38,32,32,38,58,50,26,54,74,88],
+  'A wide rounded first low, then a narrow spike low at the same level — a final flush that snaps back.',
+  'The spike is the capitulation. It taking out the rounded low by a hair is normal, not a failure.'),
+P('Eve & Eve Double Bottom','Reversal formation','Bullish',2,[84,60,38,32,34,40,58,44,34,32,40,62,84],
+  'Two wide, rounded, drawn-out lows at the same level. Slow absorption on both tests.',
+  'The slowest of the double-bottom family to form, which also means the most time to prepare for the trigger.'),
+P('Bump and Run Reversal','Reversal formation','Bearish',1,[25,28,32,30,35,38,50,66,78,72,60,44,32,24,16],
+  'A quiet lead-in trend, then a steep speculative "bump" far above the trendline, then a collapse back through it.',
+  'A picture of a mania phase. The steeper the bump relative to the lead-in, the more violent the run back.'),
+P('Cup with Handle','Reversal formation','Bullish',3,[70,55,40,32,30,32,40,55,70,62,58,64,78,88],
+  'A rounded U-shaped base (the cup), then a shallow drift lower near the rim (the handle), then a breakout over the rim.',
+  'O\'Neil\'s pattern. A handle that retraces deep into the cup rather than staying shallow is the usual failure tell.'),
+P('Inverted Cup and Handle','Reversal formation','Bearish',2,[30,45,60,68,70,68,60,45,30,38,42,36,22,12],
+  'A rounded top, then a weak bounce (the inverted handle), then a breakdown. The mirror of the cup.',
+  'Less reliable than its bullish twin, largely because downside distributions are messier than accumulations.'),
+P('Blow-off Top','Reversal formation','Bearish',2,[30,34,40,44,50,58,88,52,44,38,30,24],
+  'A near-vertical final surge on huge volume, then an immediate collapse. The last buyers get filled at the worst prices.',
+  'Volume is the whole pattern. Price alone cannot distinguish this from a normal breakout in real time.'),
+P('Selling Climax (Spike Bottom)','Reversal formation','Bullish',2,[70,66,60,56,50,42,12,48,56,62,70,76],
+  'A vertical liquidation flush on extreme volume that reverses inside a session or two as forced sellers finish.',
+  'Marks a low, not necessarily <i>the</i> low. Retests of climax lows are the norm.'),
+P('Three Rising Valleys','Reversal formation','Bullish',2,[30,50,34,58,42,66,50,74,86],
+  'Three successive higher lows with rallies between — demand stepping up at progressively higher prices.',
+  'Really just an uptrend with a name. The value is in noticing the higher lows early.'),
+P('Three Falling Peaks','Reversal formation','Bearish',2,[70,50,66,42,58,34,50,26,14],
+  'Three successive lower highs — supply stepping in at progressively lower prices.',
+  'The bearish mirror. Each lower high is a place where the previous rally\'s buyers gave up.'),
+
+/* ══ Continuation formations ══ */
+P('Bull Flag','Continuation','Bullish',3,[12,30,52,74,80,74,78,72,76,70,74,88,96],
+  'A steep rally (the pole), then a tight, gently <i>down</i>-sloping consolidation on lighter activity, then continuation.',
+  'One of the most-drawn patterns in trading and one of the most force-fitted. If the flag is loose and wide, it is a range.'),
+P('Bear Flag','Continuation','Bearish',3,[88,70,48,26,20,26,22,28,24,30,26,12,4],
+  'A sharp drop, then a tight <i>up</i>-sloping drift as sellers pause, then the decline resumes.',
+  'The counter-trend drift should be shallow and orderly. A vigorous bounce is a different pattern entirely.'),
+P('Bull Pennant','Continuation','Bullish',3,[12,32,55,78,68,80,70,76,72,75,73,74,86,96],
+  'Same pole as a bull flag, but the consolidation converges into a small symmetrical triangle instead of a channel.',
+  'Flag vs pennant is a distinction without much difference in practice — both are just tight pauses after a thrust.'),
+P('Bear Pennant','Continuation','Bearish',3,[88,68,45,22,32,20,30,24,28,25,27,26,14,4],
+  'A sharp decline, a converging coil, then continuation lower.',
+  'The tighter the coil, the cleaner the invalidation level — that is its real practical use.'),
+P('Ascending Triangle','Continuation','Bullish',3,[20,60,35,60,44,60,50,60,54,60,72,86],
+  'A flat resistance line with rising lows beneath it. Buyers pay up sooner on each dip while sellers hold one price.',
+  'Very common. Also breaks <i>down</i> often enough that "ascending = bullish" is a costly assumption.'),
+P('Descending Triangle','Continuation','Bearish',3,[80,40,65,40,56,40,50,40,46,40,28,14],
+  'Flat support with lower highs pressing down on it. Buyers defend one price while sellers accept less each time.',
+  'The mirror caveat applies: these resolve upward more often than the textbooks admit.'),
+P('Symmetrical Triangle','Continuation','Neutral',3,[20,72,28,66,36,60,42,54,46,52,62,80],
+  'Lower highs and higher lows converging to an apex. Range compression — a coiled spring with no declared direction.',
+  'Direction-agnostic by construction. Anyone telling you which way it "should" break is guessing.'),
+P('Rising Wedge','Continuation','Bearish',3,[20,50,32,58,42,64,50,68,56,70,60,44,28],
+  'Both boundaries slope up, but the lows rise faster than the highs — the advance is losing momentum as it narrows.',
+  'A rising structure with a bearish reading, which is exactly why it gets misread as strength.'),
+P('Falling Wedge','Continuation','Bullish',3,[80,50,68,42,58,36,50,32,44,30,40,56,72],
+  'Both boundaries slope down and converge, with the decline decelerating into the apex.',
+  'The most common bullish coil in a downtrend, and the one most often mistaken for a bear flag.'),
+P('Bullish Rectangle','Continuation','Bullish',3,[15,35,62,38,62,38,62,38,62,76,90],
+  'A horizontal range inside an uptrend — flat support and resistance — that resolves in the direction of the prior trend.',
+  'A rectangle is only "bullish" in hindsight. Live, it is a range and should be sized like one.'),
+P('Bearish Rectangle','Continuation','Bearish',3,[85,65,38,62,38,62,38,62,38,24,10],
+  'A horizontal pause inside a downtrend that resumes lower.',
+  'Same caveat. The prior trend is a lean, not a guarantee.'),
+P('Ascending Channel','Continuation','Bullish',3,[15,30,22,42,32,54,44,66,56,78,68,88],
+  'Higher highs and higher lows contained between two parallel rising lines. The plain definition of an uptrend.',
+  'The single most common structure on any chart. Everything else here is a special case of trend or range.'),
+P('Descending Channel','Continuation','Bearish',3,[85,70,78,58,68,46,56,34,44,22,32,12],
+  'Lower highs and lower lows between parallel falling lines.',
+  'Rallies inside a descending channel feel like reversals every single time. They usually are not.'),
+P('Horizontal Channel (Range)','Continuation','Neutral',3,[50,64,38,62,40,64,36,62,40,60,44,52],
+  'Price oscillating between horizontal support and resistance with no net progress.',
+  'Markets spend most of their life here. Trend systems bleed in ranges — this is where your afternoon losses live.'),
+P('Measured Move Up','Continuation','Bullish',2,[12,32,50,42,36,44,40,58,76,92],
+  'A leg up, a corrective pause, then a second leg of roughly equal size. Two similar thrusts around a rest.',
+  'The "equal legs" projection is a rule of thumb with no mechanism behind it. Treat it as a target, never a promise.'),
+P('Measured Move Down','Continuation','Bearish',2,[88,68,50,58,64,56,60,42,24,8],
+  'A leg down, a corrective bounce, then a second leg of similar magnitude.',
+  'Same caution. Symmetry is a convenience of the eye more than a property of the market.'),
+P('Cup without Handle','Continuation','Bullish',2,[72,56,40,32,30,32,40,56,72,86],
+  'A rounded base that breaks out at the rim with no pullback to form a handle.',
+  'Statistically a shade weaker than the handled version — the handle is a shakeout that clears out weak holders.'),
+P('High and Tight Flag','Continuation','Bullish',1,[10,40,72,90,84,88,82,86,98],
+  'A near-doubling in a couple of months, then a very shallow, very brief pause, then more upside.',
+  'Requires roughly a 90–100% run first, so it is genuinely rare and shows up in speculative manias.'),
+
+/* ══ Single-candle patterns ══ */
+C('Hammer','Single candle','Bullish',3,-1,[[45,49,50,32]],
+  'A small body at the <b>top</b> of the range with a long lower wick, appearing after a decline. Sellers pushed price down hard and were fully rejected within the session.',
+  'The wick should be at least twice the body. In a downtrend this is a signal; in a range it is just a candle.'),
+C('Inverted Hammer','Single candle','Bullish',2,-1,[[45,49,62,44]],
+  'A small body at the bottom of the range with a long upper wick, after a decline. Buyers tried and failed — but the attempt itself is the tell.',
+  'Weak on its own. Needs a higher close the next session to mean anything at all.'),
+C('Hanging Man','Single candle','Bearish',2,1,[[55,51,56,38]],
+  'Shaped exactly like a hammer, but appearing after an <b>advance</b>. Intraday selling pressure showing up where there had been none.',
+  'Identical candle, opposite meaning. Context is doing all the work here, not the shape.'),
+C('Shooting Star','Single candle','Bearish',3,1,[[55,51,70,50]],
+  'A small body at the bottom of the range with a long upper wick, after a rally. Buyers pushed to new highs and got sold into completely.',
+  'One of the more useful single candles, precisely because failed upside thrusts are informative.'),
+C('Doji','Single candle','Neutral',3,1,[[50,50.3,56,44]],
+  'Open and close essentially equal. A full session of two-way trade that settles exactly where it started — pure indecision.',
+  'The most common named candle and the least actionable. A doji alone tells you nothing about direction.'),
+C('Dragonfly Doji','Single candle','Bullish',2,-1,[[50,50.4,51,34]],
+  'Open, high and close all at the top with a long lower wick. A deep intraday flush completely reclaimed by the close.',
+  'Essentially a hammer with no body. Same reading, same dependence on a downtrend before it.'),
+C('Gravestone Doji','Single candle','Bearish',2,1,[[50,49.6,66,49]],
+  'Open, low and close all at the bottom with a long upper wick. Everything gained intraday was given back.',
+  'A shooting star with no body. The cleanest picture of a failed advance you will get in one bar.'),
+C('Long-Legged Doji','Single candle','Neutral',2,1,[[50,50.2,64,36]],
+  'Long wicks both ways, close at the open. A violent, wide-ranging session that resolved nothing.',
+  'Volatility expansion without direction. Usually a reason to reduce size, not to pick a side.'),
+C('Bullish Marubozu','Single candle','Bullish',2,-1,[[42,58,58,42]],
+  'A full-bodied up candle with no wicks — opens at the low, closes at the high. Buyers controlled every minute.',
+  'Strong, but it also means you are entering after the entire move. The next bar is where the risk lives.'),
+C('Bearish Marubozu','Single candle','Bearish',2,1,[[58,42,58,42]],
+  'A full-bodied down candle, open at the high, close at the low. Uninterrupted selling.',
+  'Common on gap-down and news days. Chasing the close is how you buy the exact low of your own trade.'),
+C('Spinning Top','Single candle','Neutral',3,1,[[50,52,60,42]],
+  'A small body with wicks on both sides. Movement in both directions, little net progress.',
+  'Everywhere, all the time. Noise with a name.'),
+C('High Wave Candle','Single candle','Neutral',2,1,[[50,51.5,72,30]],
+  'A tiny body with very long wicks both ways — an extreme spinning top. Maximum confusion.',
+  'Marks a loss of control by both sides. Position size is the only sensible response.'),
+C('Bullish Belt Hold','Single candle','Bullish',1,-1,[[40,54,56,40]],
+  'Gaps down to open at the session low, then closes near the high with no lower wick.',
+  'Common in gap-driven markets and rare in continuous ones. Indian index futures see these around events.'),
+C('Bearish Belt Hold','Single candle','Bearish',1,1,[[60,46,60,44]],
+  'Gaps up to open at the session high, then sells off all day, closing near the low.',
+  'The classic gap-up-and-fade. If your afternoons bleed, this is often the shape of the day that did it.'),
+
+/* ══ Two-candle patterns ══ */
+C('Bullish Engulfing','Two candle','Bullish',3,-1,[[52,46,53,45],[44,56,57,43]],
+  'A down candle followed by an up candle whose body <b>completely engulfs</b> it. Everyone who sold the prior session is underwater in one bar.',
+  'One of the few candle patterns with reasonable statistical support — but only at a level that already mattered.'),
+C('Bearish Engulfing','Two candle','Bearish',3,1,[[48,54,55,47],[56,44,57,43]],
+  'An up candle swallowed whole by the next down candle. A complete transfer of control in a single session.',
+  'The bodies must engulf; wicks do not count. Bigger relative size, stronger reading.'),
+C('Bullish Harami','Two candle','Bullish',2,-1,[[56,44,57,43],[47,52,53,46]],
+  'A large down candle followed by a small up candle contained entirely within its body. Selling momentum simply stops.',
+  '"Harami" is Japanese for pregnant. It signals a pause far more often than a reversal.'),
+C('Bearish Harami','Two candle','Bearish',2,1,[[44,56,57,43],[53,48,54,47]],
+  'A large up candle followed by a small down candle inside its body. Buying pressure stalls abruptly.',
+  'Weaker than an engulfing. It shows absence of pressure, not presence of the opposite.'),
+C('Bullish Harami Cross','Two candle','Bullish',1,-1,[[56,44,57,43],[49,49.2,52,47]],
+  'A harami where the inside candle is a doji — an even sharper stop to the selling.',
+  'Slightly better regarded than the plain harami. Still needs confirmation.'),
+C('Bearish Harami Cross','Two candle','Bearish',1,1,[[44,56,57,43],[51,50.8,54,49]],
+  'A harami with a doji inside a large up candle. Momentum dies in one session.',
+  'Same as above — a hesitation marker, not a short trigger by itself.'),
+C('Piercing Line','Two candle','Bullish',2,-1,[[56,46,57,45],[43,52,53,42]],
+  'A down candle, then a gap-down open that rallies to close <b>above the midpoint</b> of the prior body.',
+  'The halfway close is the entire definition. Close below it and you have a failed pattern, not a weak one.'),
+C('Dark Cloud Cover','Two candle','Bearish',2,1,[[44,54,55,43],[57,48,58,47]],
+  'An up candle, then a gap-up open that sells off to close below the midpoint of the prior body.',
+  'The bearish twin of the piercing line, and a common shape on gap-up mornings that fade.'),
+C('Tweezer Top','Two candle','Bearish',2,1,[[46,56,58,45],[56,47,58,46]],
+  'Two adjacent candles with virtually identical highs. Resistance rejects price at the exact same tick twice.',
+  'Reads better on higher timeframes. On a 5-minute chart, matching highs are mostly coincidence.'),
+C('Tweezer Bottom','Two candle','Bullish',2,-1,[[54,44,55,42],[44,53,54,42]],
+  'Two adjacent candles sharing nearly the same low — support holding to the tick.',
+  'Same caveat: needs a level that already matters. Random matching lows are noise.'),
+C('Bullish Kicker','Two candle','Bullish',1,-1,[[54,46,55,45],[52,62,63,52]],
+  'A down candle followed by a gap-up open that never trades back — the market simply reprices overnight.',
+  'Almost always news. By the time you see it, the repricing has already happened without you.'),
+C('Bearish Kicker','Two candle','Bearish',1,1,[[46,54,55,45],[48,38,48,37]],
+  'An up candle, then a gap-down open that never looks back. Violent overnight repricing.',
+  'The pattern that punishes overnight positions. Relevant to anyone carrying F&O through an event.'),
+C('On Neck Line','Two candle','Bearish',1,-1,[[56,46,57,45],[42,46,47,41]],
+  'A long down candle, then a small up candle that closes exactly at the prior <b>low</b> — a bounce that cannot even reach into the prior body.',
+  'A continuation pattern despite the up candle. The failure to penetrate is the message.'),
+C('Matching Low','Two candle','Bullish',1,-1,[[56,46,57,45],[50,46,51,45.5]],
+  'Two down candles closing at the same price. Selling continues but stops dead at an identical level.',
+  'Minor. Interesting only if that price is a level you already had marked.'),
+C('Rising Window (Gap Up)','Two candle','Bullish',3,1,[[42,48,49,41],[52,58,59,51]],
+  'A clean gap between the prior high and the next low, in an uptrend. The empty space itself becomes support.',
+  'Gaps are the most tradeable structure on this list for Indian indices, because they actually happen daily.'),
+C('Falling Window (Gap Down)','Two candle','Bearish',3,-1,[[58,52,59,51],[48,42,49,41]],
+  'A gap between the prior low and the next high, in a downtrend. The empty space becomes resistance.',
+  'The "gaps always fill" folklore is false as a rule. Some fill, some never do.'),
+
+/* ══ Three+ candle patterns ══ */
+C('Morning Star','Three+ candle','Bullish',2,-1,[[56,46,57,45],[43,42,44,41],[45,55,56,44]],
+  'Three candles: a long down candle, a small indecisive body gapped below it, then a strong up candle closing well into the first body.',
+  'The most reliable of the classic three-candle group — but "most reliable" here is a low bar.'),
+C('Evening Star','Three+ candle','Bearish',2,1,[[44,54,55,43],[57,58,59,56],[56,46,57,45]],
+  'A long up candle, a small body gapped above it, then a strong down candle closing deep into the first.',
+  'Distribution compressed into three sessions. The third candle carries all the information.'),
+C('Morning Doji Star','Three+ candle','Bullish',1,-1,[[56,46,57,45],[42,42.2,43.5,40.5],[45,56,57,44]],
+  'A morning star where the middle candle is a doji — total balance at the low before the reversal.',
+  'The doji middle is marginally stronger than a small body. Marginally.'),
+C('Evening Doji Star','Three+ candle','Bearish',1,1,[[44,54,55,43],[58,57.8,59,56.5],[56,45,57,44]],
+  'An evening star with a doji at the peak — the advance stops in perfect equilibrium, then reverses.',
+  'Same marginal improvement over the standard evening star.'),
+C('Bullish Abandoned Baby','Three+ candle','Bullish',1,-1,[[56,46,57,45],[40,40.2,41,39],[46,57,58,45]],
+  'A doji <b>fully gapped away</b> from both neighbours — wicks included — at the bottom of a decline.',
+  'Rare because it needs two gaps. Nearly nonexistent on 24-hour or highly liquid instruments.'),
+C('Bearish Abandoned Baby','Three+ candle','Bearish',1,1,[[44,54,55,43],[60,60.2,61,59],[54,44,55,43]],
+  'An isolated doji at the top, gapped clear of the candles on both sides.',
+  'Same rarity. Beautiful on a chart, almost never available in practice.'),
+C('Three White Soldiers','Three+ candle','Bullish',2,-1,[[40,48,49,39],[46,55,56,45],[53,62,63,52]],
+  'Three consecutive strong up candles, each opening inside the prior body and closing near its high.',
+  'A genuine strength signal — and by the third candle you are buying an extended move. The tension is real.'),
+C('Three Black Crows','Three+ candle','Bearish',2,1,[[60,52,61,51],[54,45,55,44],[47,38,48,37]],
+  'Three consecutive strong down candles, each closing near its low. Relentless, orderly selling.',
+  'Often marks the middle of a decline rather than the start. Shorting the third crow is a well-known way to catch the bounce.'),
+C('Three Inside Up','Three+ candle','Bullish',2,-1,[[56,44,57,43],[47,52,53,46],[51,60,61,50]],
+  'A bullish harami plus a third candle that closes above the harami\'s high — the confirmation the harami needed.',
+  'This is simply "harami, confirmed". The third candle is what makes it worth naming.'),
+C('Three Inside Down','Three+ candle','Bearish',2,1,[[44,56,57,43],[53,48,54,47],[49,40,50,39]],
+  'A bearish harami confirmed by a third candle closing below the pattern low.',
+  'Same logic inverted.'),
+C('Three Outside Up','Three+ candle','Bullish',2,-1,[[52,46,53,45],[44,56,57,43],[55,64,65,54]],
+  'A bullish engulfing plus a third candle that closes higher still.',
+  '"Engulfing, confirmed". The confirmation costs you the best entry — that is always the trade-off.'),
+C('Three Outside Down','Three+ candle','Bearish',2,1,[[48,54,55,47],[56,44,57,43],[45,36,46,35]],
+  'A bearish engulfing followed by a third, lower close.',
+  'Same structure inverted.'),
+C('Rising Three Methods','Three+ candle','Bullish',1,1,[[40,54,55,39],[52,49,53,48],[50,47,51,46],[48,45,49,44],[46,60,61,45]],
+  'A long up candle, three small down candles that stay <b>inside</b> its range, then a new high close. A pause that never threatens.',
+  'A five-bar bull flag. The containment within the first candle\'s range is the whole point.'),
+C('Falling Three Methods','Three+ candle','Bearish',1,-1,[[60,46,61,45],[48,51,52,47],[50,53,54,49],[52,55,56,51],[54,40,55,39]],
+  'A long down candle, three small contained up candles, then a new low close.',
+  'A five-bar bear flag. Same reading in reverse.'),
+C('Mat Hold','Three+ candle','Bullish',1,1,[[38,52,53,37],[55,53,56,52],[54,51,55,50],[52,50,53,49],[50,64,65,49]],
+  'A strong up candle, a small gap up, then a shallow drift that holds above the first candle\'s midpoint, then continuation.',
+  'A stricter rising-three-methods. The extra conditions make it rare without making it much better.'),
+C('Upside Tasuki Gap','Three+ candle','Bullish',1,1,[[40,48,49,39],[52,58,59,51],[57,53,58,52]],
+  'A gap up, then a down candle that opens inside the gap-up candle and closes into the gap <b>without filling it</b>.',
+  'The unfilled gap is the signal. Fill it and the pattern is dead.'),
+C('Downside Tasuki Gap','Three+ candle','Bearish',1,-1,[[60,52,61,51],[48,42,49,41],[43,47,48,42]],
+  'A gap down, then an up candle that pushes back into the gap but fails to close it.',
+  'Same logic. A partial fill is continuation; a full fill is not.'),
+C('Bullish Three Line Strike','Three+ candle','Bullish',1,1,[[40,46,47,39],[45,51,52,44],[50,56,57,49],[57,39,58,38]],
+  'Three rising candles, then one large down candle that engulfs all three — and is read as <b>bullish continuation</b>.',
+  'Deeply counter-intuitive and the reason this pattern gets quoted constantly. The evidence for it is thin.'),
+C('Bearish Three Line Strike','Three+ candle','Bearish',1,-1,[[60,54,61,53],[55,49,56,48],[50,44,51,43],[43,61,62,42]],
+  'Three falling candles engulfed by one large up candle, read as bearish continuation.',
+  'Same counter-intuitive claim, same thin evidence. Know it so you can recognise it being quoted at you.'),
+C('Stick Sandwich','Three+ candle','Bullish',1,-1,[[56,48,57,47],[50,56,57,49],[57,48,58,47]],
+  'Two down candles closing at the same price with an up candle sandwiched between them.',
+  'The matched closes form support. Obscure and rarely worth hunting for.'),
+C('Upside Gap Two Crows','Three+ candle','Bearish',1,1,[[40,50,51,39],[56,54,57,53],[58,52,59,51]],
+  'A gap up, then two successive down candles that erode the gap — strength that immediately starts leaking away.',
+  'A recognisable failed-gap-up shape. The gap holding is what separates this from a full reversal.'),
+C('Island Reversal Top','Three+ candle','Bearish',1,1,[[46,52,53,45],[58,60,61,57],[60,58,62,57],[59,61,62,58],[50,44,51,43]],
+  'A gap up, a cluster of candles trading in isolation, then a gap down — leaving an "island" of trapped buyers with no bridge back.',
+  'Everyone who bought the island is offside with no volume behind them. Structurally one of the more meaningful patterns here.'),
+C('Island Reversal Bottom','Three+ candle','Bullish',1,-1,[[54,48,55,47],[42,40,43,39],[40,42,43,38],[41,39,43,38],[50,56,57,49]],
+  'A gap down, a stranded cluster of trading, then a gap up away from it.',
+  'Same structure at a low. The isolation of the cluster is what gives it weight.'),
+C('Pipe Bottom','Three+ candle','Bullish',1,-1,[[50,48,51,32],[48,52,53,32]],
+  'Two adjacent candles with long, roughly equal lower wicks — a sharp double flush that gets bought both times.',
+  'A tweezer bottom with conviction. Best read on weekly charts, where Bulkowski catalogued it.'),
+C('Pipe Top','Three+ candle','Bearish',1,1,[[50,52,68,49],[52,48,68,47]],
+  'Two adjacent long upper wicks at the same high — two hard rejections back to back.',
+  'The weekly-chart cousin of the tweezer top.'),
+C('Bullish Tri-Star','Three+ candle','Bullish',1,-1,[[50,50.2,51,49],[47,47.2,48,46],[50,50.3,51,49]],
+  'Three consecutive dojis at a low, with the middle one gapped below. Total exhaustion of the selling.',
+  'Extremely rare — three dojis in a row is already unusual. Mostly a curiosity.'),
+C('Bearish Tri-Star','Three+ candle','Bearish',1,1,[[50,50.2,51,49],[53,53.2,54,52],[50,49.8,51,49]],
+  'Three dojis at a high, the middle one gapped above. All momentum gone.',
+  'Same rarity. You will read about it far more often than you will see it.')
+];
+
+/* ─────────── candle generation ─────────── */
+/* Real price does not trace a curve with fuzz on it. It random-walks, drifts away from its
+   own structure and gets pulled back, clusters its volatility into quiet and violent stretches,
+   and prints runs of same-colour candles. So: an Ornstein–Uhlenbeck walk pulled toward each
+   pattern's skeleton, with GARCH-ish volatility persistence and fat-tailed wicks. */
+
+/* Box–Muller: normal shocks, not uniform ones — this is what produces the occasional
+   outsized candle and the occasional doji instead of an even mush. */
+function gauss(rng){
+  let u = 0, v = 0;
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+/* A phone gives a chart ~340px. 70 candles there is 4px each — drawn, but not readable.
+   Fewer, wider candles show the pattern; the shape is what matters, not the bar count. */
+const phone = () => (window.innerWidth || 1200) < 600;
+
+function params(){
+  return {
+    sigma: 0.85 + tfi * 0.11,                    // per-candle shock size
+    wick:  0.85 + tfi * 0.16,
+    gapP:  tfi < 2 ? 0.015 : 0.04 + tfi * 0.018, // intraday barely gaps; daily/weekly do
+    kappa: 0.26                                  // pull toward the skeleton
+  };
+}
+
+/* Walk N candles toward a moving target. yAt(t) is the pattern skeleton.
+   `kap` overrides the pull strength: the walk behaves as a low-pass filter, so a skeleton
+   with fast swings (a tight range) needs a stronger pull or its oscillations get smeared away. */
+function walk(yAt, N, rng, start, kap){
+  const { sigma, wick, gapP, kappa } = params();
+  const k = kap || kappa;
+  const out = [];
+  let prevC = start !== undefined ? start : yAt(0);
+  let vs = 1, prevRet = 0;                       // volatility state, previous return
+
+  for (let i = 0; i < N; i++){
+    const t = N === 1 ? 0 : i / (N - 1);
+    const shock = gauss(rng);
+
+    // volatility clusters: today's range depends on yesterday's
+    vs = 0.80 * vs + 0.20 * (0.55 + Math.abs(shock) * 0.85);
+    vs = Math.min(2.8, Math.max(0.3, vs));
+
+    // open at the prior close, except when it gaps
+    let o = prevC;
+    if (rng() < gapP) o = prevC + gauss(rng) * sigma * vs * 1.1;
+
+    // mean-reverting pull toward the skeleton + a random shock, minus a touch of the
+    // previous move. That last term is the bid-ask bounce: real returns are mildly
+    // negatively autocorrelated, which is what stops candles printing in long clean runs.
+    const c = o + (yAt(t) - o) * k + shock * sigma * vs - prevRet * 0.16;
+    prevRet = c - o;
+
+    const hi = Math.max(o, c), lo = Math.min(o, c), wv = wick * vs * 0.5;
+    out.push({
+      o, c,
+      h: hi + Math.abs(gauss(rng)) * wv,   // |normal| wicks: usually short, sometimes very long
+      l: lo - Math.abs(gauss(rng)) * wv
+    });
+    prevC = c;
+  }
+  return out;
+}
+
+/* Volume reacts to what the candle did: wide range and big body = participation. */
+function addVolume(candles, rng){
+  let prev = 1;
+  return candles.map(k => {
+    const body = Math.abs(k.c - k.o), rangeK = k.h - k.l;
+    let v = 0.40 + body * 0.26 + rangeK * 0.14;
+    v = prev * 0.35 + v * 0.65;                     // volume persists too
+    prev = v;
+    return { ...k, vol: Math.max(0.12, v * (0.6 + rng() * 0.8)) };
+  });
+}
+
+function buildPath(pt, rng){
+  const N = phone() ? 46 : 70;
+  const yAt = t => {
+    const x = t * (pt.length - 1), i = Math.min(Math.floor(x), pt.length - 2);
+    return pt[i] + (pt[i+1] - pt[i]) * (x - i);
+  };
+  // candles per skeleton leg → how fast the walk must track to keep the shape legible
+  const leg = N / (pt.length - 1);
+  const kap = Math.min(0.55, Math.max(0.26, 2.2 / leg));
+  return { candles: addVolume(walk(yAt, N, rng, undefined, kap), rng), hi: null };
+}
+
+function buildSpec(spec, rng){
+  const first = spec.c[0][0], last = spec.c[spec.c.length - 1][1];
+  const dir = spec.pre, amp = 17;
+
+  // the trend leading in — a real one, not a ruled line
+  const nPre = phone() ? 9 : 14;
+  const pre = walk(t => first - dir * amp * (1 - t), nPre, rng, first - dir * amp);
+
+  // nudge the last pre-candle to hand off cleanly into the pattern's first open
+  const lastPre = pre[pre.length - 1];
+  const adj = first - lastPre.c;
+  lastPre.c += adj;
+  lastPre.h = Math.max(lastPre.h, lastPre.c);
+  lastPre.l = Math.min(lastPre.l, lastPre.c);
+
+  const hiStart = pre.length;
+  // the pattern itself, exactly as defined — this part must not be randomised
+  const core = spec.c.map(([o, c, h, l]) => ({ o, c, h, l }));
+  const hiEnd = hiStart + core.length - 1;
+
+  // how it resolves
+  const d = spec.bias === 'Neutral' ? 0 : (spec.biasDir || 0);
+  const nPost = phone() ? 7 : 11;
+  const post = walk(t => last + d * amp * 0.85 * t, nPost, rng, last);
+
+  const all = addVolume([...pre, ...core, ...post], rng);
+  // the pattern candles are the event — give them the participation to match
+  for (let i = hiStart; i <= hiEnd; i++) all[i].vol *= 1.5 + rng() * 0.7;
+  return { candles: all, hi: [hiStart, hiEnd] };
+}
+
+function seriesFor(pat){
+  const rng = rngFrom(hash(pat.name) ^ (tfi * 2654435761));
+  if (pat.kind === 'path') return buildPath(pat.p, rng);
+  const dir = pat.bias === 'Bullish' ? 1 : pat.bias === 'Bearish' ? -1 : 0;
+  return buildSpec({ ...pat, biasDir: dir }, rng);
+}
+
+/* map the 0–100 authoring scale onto a NIFTY-like price for the active timeframe */
+const toPrice = y => BASE * (1 + ((y - 50) / 50) * (TFS[tfi].range / 2) / 100);
+
+/* ─────────── time axis ─────────── */
+function labelsFor(n){
+  const tf = TFS[tfi], out = [];
+  if (tf.unit === 'min'){
+    let mins = 9 * 60 + 15, day = 0;
+    for (let i = 0; i < n; i++){
+      const h = Math.floor(mins / 60) % 24, m = mins % 60;
+      out.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
+      mins += tf.step;
+      if (mins > 15 * 60 + 30){ mins = 9 * 60 + 15; day++; }
+    }
+  } else {
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let d = new Date(2026, 0, 5);
+    for (let i = 0; i < n; i++){
+      out.push(tf.step >= 30 ? MON[d.getMonth()] + " '" + String(d.getFullYear()).slice(2)
+                             : d.getDate() + ' ' + MON[d.getMonth()]);
+      d = new Date(d.getTime() + tf.step * 86400000);
+      if (tf.step === 1) while (d.getDay() === 0 || d.getDay() === 6) d = new Date(d.getTime() + 86400000);
+    }
+  }
+  return out;
+}
+
+/* ─────────── renderer ─────────── */
+function draw(cv, pat, detailed){
+  // Cap the pixel ratio. Phones report 3, and 100 canvases x 3x scaling blows past
+  // mobile Safari's total canvas memory ceiling, after which it renders nothing at all.
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (!W || !H) return;                    // not laid out yet — nothing to draw into
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const narrow = W < 560;
+
+  const { candles, hi } = seriesFor(pat);
+  const prices = candles.map(k => ({
+    o:toPrice(k.o), c:toPrice(k.c), h:toPrice(k.h), l:toPrice(k.l), vol:k.vol
+  }));
+
+  const padL = detailed ? 8 : 3, padR = detailed ? (narrow ? 50 : 74) : 4;
+  const padT = detailed ? 12 : 5, padB = detailed ? 26 : 5;
+  const cw = W - padL - padR, ch = H - padT - padB;
+
+  // split into a price pane and a volume pane, like a real terminal
+  const priceH = ch * 0.79, volH = ch * 0.17, volTop = padT + priceH + ch * 0.04;
+
+  let lo = Infinity, hiP = -Infinity;
+  for (const k of prices){ if (k.l < lo) lo = k.l; if (k.h > hiP) hiP = k.h; }
+  const pad = (hiP - lo) * 0.07; lo -= pad; hiP += pad;
+  const Y = p => padT + priceH - ((p - lo) / (hiP - lo)) * priceH;
+
+  const slot = cw / candles.length;
+  const bw = Math.max(1.5, Math.min(slot - 1, slot * 0.68));
+  const dec = TFS[tfi].range < 3 ? 1 : 0;
+
+  if (detailed){
+    g.font = '10px "Segoe UI",sans-serif'; g.textBaseline = 'middle';
+    for (let i = 0; i <= 5; i++){
+      const y = padT + (priceH / 5) * i, p = hiP - ((hiP - lo) / 5) * i;
+      g.strokeStyle = '#1c2434'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(padL, y + .5); g.lineTo(padL + cw, y + .5); g.stroke();
+      g.fillStyle = '#8b98ad'; g.textAlign = 'left';
+      g.fillText(p.toFixed(dec), padL + cw + 8, y);
+    }
+    const labs = labelsFor(candles.length);
+    g.textAlign = 'center'; g.textBaseline = 'top';
+    const every = Math.ceil(candles.length / (narrow ? 4 : 8));
+    for (let i = 0; i < candles.length; i += every){
+      g.strokeStyle = '#1c2434';
+      g.beginPath(); g.moveTo(padL + (i + .5) * slot, padT); g.lineTo(padL + (i + .5) * slot, padT + priceH); g.stroke();
+      g.fillStyle = '#8b98ad';
+      g.fillText(labs[i], padL + (i + .5) * slot, padT + ch + 7);
+    }
+  }
+
+  if (detailed && hi){
+    g.fillStyle = 'rgba(76,154,255,.09)';
+    g.fillRect(padL + hi[0] * slot, padT, (hi[1] - hi[0] + 1) * slot, priceH);
+    g.strokeStyle = 'rgba(76,154,255,.35)';
+    g.setLineDash([4,3]);
+    g.strokeRect(padL + hi[0] * slot + .5, padT + .5, (hi[1] - hi[0] + 1) * slot, priceH - 1);
+    g.setLineDash([]);
+  }
+
+  /* volume pane */
+  const vmax = Math.max(...prices.map(k => k.vol));
+  prices.forEach((k, i) => {
+    const x = padL + i * slot + slot / 2;
+    const h = Math.max(0.7, (k.vol / vmax) * volH);
+    g.fillStyle = k.c >= k.o ? 'rgba(38,166,91,.45)' : 'rgba(224,56,78,.45)';
+    g.fillRect(x - bw / 2, volTop + volH - h, bw, h);
+  });
+
+  /* 21-period moving average */
+  if (detailed){
+    const per = 21;
+    g.strokeStyle = 'rgba(230,180,70,.75)'; g.lineWidth = 1.2;
+    g.beginPath();
+    let started = false;
+    for (let i = per - 1; i < prices.length; i++){
+      let s = 0; for (let j = i - per + 1; j <= i; j++) s += prices[j].c;
+      const x = padL + i * slot + slot / 2, y = Y(s / per);
+      started ? g.lineTo(x, y) : (g.moveTo(x, y), started = true);
+    }
+    g.stroke();
+  }
+
+  /* candles */
+  prices.forEach((k, i) => {
+    const x = padL + i * slot + slot / 2;
+    const up = k.c >= k.o;
+    const body = up ? '#26a65b' : '#e0384e';
+    const edge = up ? '#3ddc84' : '#ff5c72';
+    g.strokeStyle = edge; g.lineWidth = Math.min(1.3, Math.max(0.9, slot * .11));
+    g.beginPath();
+    g.moveTo(x, Y(k.h)); g.lineTo(x, Y(Math.max(k.o, k.c)));
+    g.moveTo(x, Y(Math.min(k.o, k.c))); g.lineTo(x, Y(k.l));
+    g.stroke();
+    const yo = Y(k.o), yc = Y(k.c);
+    const top = Math.min(yo, yc), bh = Math.max(1, Math.abs(yc - yo));
+    g.fillStyle = body;
+    g.fillRect(x - bw / 2, top, bw, bh);
+    if (bw > 3.2){ g.strokeStyle = edge; g.lineWidth = 1; g.strokeRect(x - bw / 2 + .5, top + .5, bw - 1, bh - 1); }
+  });
+
+  /* last price marker */
+  if (detailed){
+    const last = prices[prices.length - 1], y = Y(last.c);
+    const up = last.c >= last.o;
+    g.strokeStyle = up ? 'rgba(61,220,132,.55)' : 'rgba(255,92,114,.55)';
+    g.setLineDash([3,3]); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(padL, y + .5); g.lineTo(padL + cw, y + .5); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = up ? '#26a65b' : '#e0384e';
+    g.fillRect(padL + cw + 4, y - 8, padR - 8, 16);
+    g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.font = 'bold 10px "Segoe UI",sans-serif';
+    g.fillText(last.c.toFixed(dec), padL + cw + 8, y);
+  }
+}
+
+/* ─────────── UI ─────────── */
+const FREQ = { 3:'Very common', 2:'Common', 1:'Occasional' };
+const grid = document.getElementById('grid');
+const el = id => document.getElementById(id);
+let view = [];
+
+TFS.forEach((t, i) => {
+  const b = document.createElement('button');
+  b.textContent = t.label; b.className = i === tfi ? 'on' : '';
+  b.onclick = () => {
+    tfi = i;
+    [...el('tfbar').children].forEach((x, j) => x.className = j === i ? 'on' : '');
+    render();
+    if (el('modal').classList.contains('on')) openAt(cur);
+  };
+  el('tfbar').appendChild(b);
+});
+
+const cats = [...new Set(PATTERNS.map(p => p.cat))];
+el('cat').innerHTML = '<option value="">All groups</option>' + cats.map(c => `<option>${c}</option>`).join('');
+
+/* Draw a card only once it is near the viewport, and hand its memory back when it
+   scrolls well clear. Phones cannot hold 100 live canvases at once. */
+let io = null;
+function observer(){
+  if (io) io.disconnect();
+  io = new IntersectionObserver(entries => {
+    for (const e of entries){
+      const cv = e.target.querySelector('canvas');
+      const p = view[+e.target.dataset.i];
+      if (!p) continue;
+      if (e.isIntersecting){
+        if (!cv.dataset.drawn){ draw(cv, p, false); cv.dataset.drawn = '1'; }
+      } else if (cv.dataset.drawn){
+        cv.width = 0; cv.height = 0;          // frees the backing store; CSS holds the layout
+        delete cv.dataset.drawn;
+      }
+    }
+  }, { rootMargin: '600px 0px' });
+  [...grid.children].forEach(c => io.observe(c));
+}
+
+function render(){
+  const q = el('q').value.trim().toLowerCase();
+  const cf = el('cat').value, bf = el('bias').value, sf = el('sort').value;
+  view = PATTERNS.filter(p =>
+    (!q || p.name.toLowerCase().includes(q)) &&
+    (!cf || p.cat === cf) && (!bf || p.bias === bf));
+
+  if (sf === 'name') view.sort((a,b) => a.name.localeCompare(b.name));
+  else if (sf === 'cat') view.sort((a,b) => cats.indexOf(a.cat) - cats.indexOf(b.cat) || a.name.localeCompare(b.name));
+  else view.sort((a,b) => b.freq - a.freq || a.name.localeCompare(b.name));
+
+  el('count').textContent = `${view.length} of ${PATTERNS.length} patterns · ${TFS[tfi].label} candles`;
+  grid.innerHTML = '';
+  view.forEach((p, i) => {
+    const d = document.createElement('div');
+    d.className = 'card';
+    d.dataset.i = i;
+    d.innerHTML = `<canvas width="0" height="0"></canvas><div class="cname">${p.name}</div>
+      <div class="meta">
+        <span class="tag ${p.bias==='Bullish'?'b-bull':p.bias==='Bearish'?'b-bear':'b-neut'}">${p.bias}</span>
+        <span class="tag">${p.cat}</span>
+        ${p.freq===3?'<span class="tag f3">Very common</span>':''}
+      </div>`;
+    d.onclick = () => openAt(i);
+    grid.appendChild(d);
+  });
+  observer();
+}
+
+let cur = 0;
+function openAt(i){
+  cur = (i + view.length) % view.length;
+  const p = view[cur];
+  el('mname').textContent = p.name;
+  el('mmeta').innerHTML =
+    `<span class="tag ${p.bias==='Bullish'?'b-bull':p.bias==='Bearish'?'b-bear':'b-neut'}">${p.bias}</span>
+     <span class="tag">${p.cat}</span>
+     <span class="tag f3">${FREQ[p.freq]}</span>
+     <span class="tag">${TFS[tfi].label} candles</span>`;
+  el('mdesc').innerHTML = p.desc;
+  el('mnote').innerHTML = '<b>Reality check:</b> ' + p.note;
+  el('modal').classList.add('on');
+  draw(el('big'), p, true);
+}
+el('mx').onclick = () => el('modal').classList.remove('on');
+el('modal').onclick = e => { if (e.target === el('modal')) el('modal').classList.remove('on'); };
+el('prev').onclick = () => openAt(cur - 1);
+el('next').onclick = () => openAt(cur + 1);
+document.onkeydown = e => {
+  if (!el('modal').classList.contains('on')) return;
+  if (e.key === 'Escape') el('modal').classList.remove('on');
+  if (e.key === 'ArrowLeft') openAt(cur - 1);
+  if (e.key === 'ArrowRight') openAt(cur + 1);
+};
+['q','cat','bias','sort'].forEach(id => el(id).oninput = render);
+el('ftog').onclick = () => {
+  const open = el('filters').classList.toggle('open');
+  el('ftog').classList.toggle('open', open);
+  el('ftog').textContent = open ? 'Filters ▴' : 'Filters ▾';
+};
+
+/* Mobile fires resize on every scroll as the address bar collapses. Only react to a real
+   width change, and debounce it, or the whole grid re-renders continuously while scrolling. */
+let rt, lastW = innerWidth;
+addEventListener('resize', () => {
+  if (innerWidth === lastW) return;
+  lastW = innerWidth;
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    render();
+    if (el('modal').classList.contains('on')) openAt(cur);
+  }, 180);
+});
+
+/* swipe between patterns on touch */
+let tx = null;
+const big = el('big');
+big.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive:true });
+big.addEventListener('touchend', e => {
+  if (tx === null) return;
+  const d = e.changedTouches[0].clientX - tx; tx = null;
+  if (Math.abs(d) > 45) openAt(cur + (d < 0 ? 1 : -1));
+}, { passive:true });
+
+render();
+console.log('patterns:', PATTERNS.length);
+</script>
+</body>
+</html>
